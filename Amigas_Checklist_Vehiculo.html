@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amigas Cleaning Services — Checklist de Vehículo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --primary:#12126F; --primary-light:#eceafb; --primary-dark:#0b0b4a;
+    --accent:#260098; --accent-light:#efe6fb;
+    --secondary:#B63185; --secondary-light:#fbeaf3;
+    --ink:#20203a; --muted:#666a8a; --line:#e3e2f0; --bg:#f6f6fb; --card:#ffffff;
+    --red:#c0392b; --red-light:#fdeceb; --green:#1a7f4e; --green-light:#e7f6ee; --amber:#a06715; --amber-light:#fdf1de;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Poppins',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--ink);}
+  header{background:var(--primary);color:#fff;padding:18px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  header img{height:38px;border-radius:6px;background:#fff;padding:3px;}
+  header .htext h1{margin:0;font-size:17px;font-weight:600;}
+  header .htext p{margin:3px 0 0;font-size:12px;opacity:.85;}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 16px 60px;}
+  .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .tab-btn{flex:1;min-width:140px;min-height:46px;background:#fff;border:1px solid var(--line);color:var(--primary);padding:12px;border-radius:10px;font-weight:600;font-size:13.5px;cursor:pointer;font-family:inherit;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+  .tab-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .view{display:none;}
+  .view.active{display:block;}
+  .banner{border-radius:8px;padding:10px 14px;font-size:12.5px;margin-bottom:14px;display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap;}
+  .banner.ok{background:var(--green-light);color:var(--green);border:1px solid #bfe6d2;}
+  .banner.warn{background:var(--amber-light);color:var(--amber);border:1px solid #f1dfb8;}
+  .banner.bad{background:var(--red-light);color:var(--red);border:1px solid #f2c9c4;}
+  .banner button{border:none;background:transparent;font-weight:700;text-decoration:underline;cursor:pointer;font-size:12px;color:inherit;font-family:inherit;}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 18px;margin-bottom:16px;}
+  .panel h2{margin:0 0 4px;font-size:15px;color:var(--primary-dark);}
+  .panel .sub{font-size:12px;color:var(--muted);margin-bottom:14px;}
+  .field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+  .field label{font-size:12.5px;color:var(--ink);font-weight:600;}
+  .field label .req{color:var(--secondary);}
+  .field-hint{font-size:11px;color:var(--muted);margin-top:-2px;}
+  .field input, .field select, .field textarea{padding:12px 12px;border:1.5px solid var(--line);border-radius:9px;font-size:16px;font-family:inherit;width:100%;background:#fff;min-height:46px;}
+  .field textarea{resize:vertical;min-height:70px;}
+
+  /* ---------- layout: form + car aside ---------- */
+  .form-layout{display:flex;gap:20px;align-items:flex-start;}
+  .sections-col{flex:1;min-width:0;}
+  .car-aside{flex:0 0 210px;position:sticky;top:16px;}
+  @media (max-width:860px){
+    .form-layout{flex-direction:column;}
+    .car-aside{position:sticky;top:0;z-index:5;flex:none;width:100%;padding-bottom:8px;background:var(--bg);}
+  }
+
+  .car-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;}
+  .car-card svg{width:100%;height:auto;display:block;max-width:260px;margin:0 auto;}
+  .car-card .zone-label{margin-top:8px;font-size:12.5px;font-weight:700;color:var(--accent);min-height:16px;}
+  .car-card .zone-hint{font-size:10.5px;color:var(--muted);margin-top:2px;}
+  @media (max-width:860px){
+    .car-card{padding:8px 14px;display:flex;align-items:center;gap:12px;text-align:left;}
+    .car-card svg{max-width:110px;flex:0 0 110px;}
+    .car-card .zone-text{flex:1;}
+    .car-card .zone-label{margin-top:0;}
+  }
+  svg .car-body-fill{fill:#d3d3e6;}
+  svg .car-window{fill:#e9e9f5;}
+  svg .wheel{fill:#9a9ab2;}
+  svg .car-zone{fill:var(--accent);fill-opacity:0;stroke:var(--accent);stroke-opacity:0;stroke-width:3;transition:fill-opacity .25s ease,stroke-opacity .25s ease;}
+  svg .car-zone.active{fill-opacity:.30;stroke-opacity:.9;}
+
+  /* ---------- section cards ---------- */
+  .section-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:14px;scroll-margin-top:90px;}
+  .section-card .sec-kicker{font-size:10.5px;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}
+  .section-card h3{margin:0 0 4px;font-size:15.5px;color:var(--primary-dark);}
+  .section-card .sec-sub{font-size:12px;color:var(--muted);margin-bottom:14px;}
+
+  /* ---------- selection widgets (min 44px touch target, iOS-friendly) ---------- */
+  .opt-group{display:flex;gap:8px;flex-wrap:wrap;}
+  .opt{flex:1;min-width:72px;min-height:46px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px 8px;border:1.5px solid var(--line);border-radius:9px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--muted);background:#fff;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
+  .opt.sel{color:#fff;border-color:transparent;}
+  .opt.sel[data-tone="good"]{background:var(--green);}
+  .opt.sel[data-tone="bad"]{background:var(--red);}
+  .opt.sel[data-tone="warn"]{background:var(--amber);}
+  .opt.sel[data-tone="neutral"]{background:var(--primary);}
+
+  .chip-group{display:flex;flex-wrap:wrap;gap:9px;}
+  .chip{min-height:44px;display:inline-flex;align-items:center;padding:9px 16px;border:1.5px solid var(--line);border-radius:22px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;background:#fff;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
+  .chip-group.tone-bad .chip.sel{background:var(--red-light);color:var(--red);border-color:#f2c9c4;}
+  .chip-group.tone-good .chip.sel{background:var(--green-light);color:var(--green);border-color:#bfe6d2;}
+  .chip.chip-none.sel{background:var(--green-light) !important;color:var(--green) !important;border-color:#bfe6d2 !important;}
+
+  .btn{background:var(--primary);color:#fff;border:none;padding:14px 18px;border-radius:9px;font-size:16px;cursor:pointer;font-weight:600;font-family:inherit;width:100%;min-height:50px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+  .btn:hover{background:var(--primary-dark);}
+  .btn.secondary{background:#fff;color:var(--primary);border:1px solid var(--primary);width:auto;padding:9px 14px;font-size:13px;min-height:40px;}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);padding:8px 12px;font-size:12px;width:auto;min-height:auto;}
+  .btn.small{padding:6px 11px;font-size:11.5px;width:auto;min-height:36px;}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
+  .toolbar select, .toolbar input{padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 14px;}
+  .kpi .num{font-size:21px;font-weight:700;color:var(--primary);}
+  .kpi .lbl{font-size:10.5px;color:var(--muted);margin-top:2px;}
+  .kpi.alert .num{color:var(--red);}
+
+  .table-scroll{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:640px;}
+  th{background:var(--primary-light);color:var(--primary-dark);text-align:left;padding:8px 9px;font-size:11px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
+  td{padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr.flag td{background:var(--red-light);}
+  .badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;display:inline-block;margin:1px 3px 1px 0;}
+  .badge.ok{background:var(--green-light);color:var(--green);}
+  .badge.bad{background:var(--red-light);color:var(--red);}
+  .badge.gas-low{background:var(--red-light);color:var(--red);}
+  .badge.gas-ok{background:var(--primary-light);color:var(--primary);}
+  .empty-state{text-align:center;color:var(--muted);font-size:13px;padding:30px 10px;}
+  details.settings{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:16px;}
+  details.settings summary{cursor:pointer;font-weight:600;font-size:13px;color:var(--primary);}
+  details.settings .field{margin-top:12px;}
+  .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;}
+  .status-dot.on{background:var(--green);}
+  .status-dot.off{background:var(--red);}
+  .foot-note{font-size:11px;color:var(--muted);margin-top:22px;line-height:1.6;border-top:1px solid var(--line);padding-top:14px;}
+
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(18,18,111,.4);align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal-bg.open{display:flex;}
+  .modal{background:#fff;border-radius:12px;max-width:520px;width:100%;max-height:88vh;overflow-y:auto;padding:22px 24px;}
+  .modal h2{margin:0 0 14px;color:var(--primary-dark);font-size:16px;}
+  .modal .row{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;}
+  .modal .row b{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;flex:0 0 150px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;border-top:1px solid var(--line);padding-top:14px;}
+
+  @media (max-width:520px){
+    .kpis{grid-template-columns:repeat(2,1fr);}
+    .modal{padding:18px 16px;}
+    .modal .row{flex-direction:column;gap:2px;}
+    .modal .row b{flex:none;}
+  }
+  @media (max-width:400px){
+    .opt{min-width:64px;font-size:12.5px;}
+    .car-card svg{max-width:88px;flex-basis:88px;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <img src="https://d1yei2z3i6k35z.cloudfront.net/16671346/69a90860500c1_AMIGASCLEANINGSERVICES1.png" alt="Amigas Cleaning Services" onerror="this.style.display='none'">
+  <div class="htext">
+    <h1>Checklist de Vehículo</h1>
+    <p>Pilar Operaciones · Salida diaria por secciones del carro</p>
+  </div>
+</header>
+<div class="wrap">
+
+  <details class="settings" id="settingsBox">
+    <summary>⚙ Configuración de sincronización (una sola vez por dispositivo)</summary>
+    <div class="field">
+      <label>URL del backend (Google Apps Script Web App)</label>
+      <input type="text" id="cfgEndpoint" placeholder="https://script.google.com/macros/s/XXXXX/exec">
+      <div class="field-hint">Pega aquí la URL que te da Google Apps Script al desplegar el backend. Se guarda solo en este dispositivo/navegador.</div>
+    </div>
+    <button class="btn secondary" onclick="saveEndpoint()">Guardar y probar conexión</button>
+    <span id="cfgStatus" style="font-size:12px;margin-left:10px;"></span>
+  </details>
+
+  <div id="connBanner"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabBtnForm" onclick="showTab('form')">📋 Registrar (Empleada)</button>
+    <button class="tab-btn" id="tabBtnPanel" onclick="showTab('panel')">📊 Panel / Historial (María)</button>
+  </div>
+
+  <!-- ===================== VISTA REGISTRAR ===================== -->
+  <div class="view active" id="viewForm">
+
+    <div class="panel">
+      <div class="field" style="margin-bottom:10px;"><label>Fecha</label><input type="date" id="f_fecha"></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div class="field" style="flex:1;min-width:140px;"><label>Hora de salida</label><input type="time" id="f_hora"></div>
+        <div class="field" style="flex:1;min-width:180px;"><label>Nombre de la empleada <span class="req">*</span></label>
+          <input type="text" id="f_empleada" list="empList" placeholder="Ej. Soami Perdomo">
+          <datalist id="empList"></datalist>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-layout">
+      <div class="sections-col">
+
+        <!-- SECCIÓN 1: POR FUERA -->
+        <div class="section-card" data-zone="exterior">
+          <div class="sec-kicker">1. Por fuera</div>
+          <h3>Exterior del vehículo</h3>
+          <div class="sec-sub">Revisa alrededor del carro antes de subirte.</div>
+
+          <div class="field">
+            <label>Llantas <span class="req">*</span></label>
+            <div class="opt-group" id="og_llantas">
+              <div class="opt" data-val="Bien" data-tone="good">Bien</div>
+              <div class="opt" data-val="Revisar" data-tone="bad">Revisar</div>
+            </div>
+          </div>
+          <div class="field" id="fld_llantas_nota" style="display:none;">
+            <label>¿Qué se observa en las llantas?</label>
+            <input type="text" id="f_llantas_nota" placeholder="Ej. baja de presión, desgaste...">
+          </div>
+
+          <div class="field">
+            <label>¿Golpes o daños visibles? <span class="req">*</span></label>
+            <div class="opt-group" id="og_golpes">
+              <div class="opt" data-val="No" data-tone="good">No</div>
+              <div class="opt" data-val="Sí" data-tone="bad">Sí</div>
+            </div>
+          </div>
+          <div class="field" id="fld_golpes_nota" style="display:none;">
+            <label>Describe el golpe o daño</label>
+            <input type="text" id="f_golpes_nota" placeholder="Ubicación y tipo de daño...">
+          </div>
+
+          <div class="field">
+            <label>Capó: nivel de agua / refrigerante <span class="req">*</span></label>
+            <div class="opt-group" id="og_capo">
+              <div class="opt" data-val="OK" data-tone="good">Nivel OK</div>
+              <div class="opt" data-val="Bajo" data-tone="bad">Bajo</div>
+              <div class="opt" data-val="No revisado" data-tone="warn">No revisado</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 2: TABLERO -->
+        <div class="section-card" data-zone="tablero">
+          <div class="sec-kicker">Por dentro · 2. Tablero</div>
+          <h3>Tablero</h3>
+          <div class="sec-sub">Ya sentada, antes de arrancar.</div>
+
+          <div class="field">
+            <label>Nivel de gasolina <span class="req">*</span></label>
+            <div class="opt-group" id="og_gasolina">
+              <div class="opt" data-val="Lleno" data-tone="good">Lleno</div>
+              <div class="opt" data-val="3/4" data-tone="good">3/4</div>
+              <div class="opt" data-val="1/2" data-tone="neutral">1/2</div>
+              <div class="opt" data-val="1/4" data-tone="bad">1/4</div>
+              <div class="opt" data-val="Reserva" data-tone="bad">Reserva</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Kilometraje actual (opcional)</label>
+            <input type="number" id="f_km" placeholder="Ej. 84210">
+          </div>
+          <div class="field">
+            <label>Luces de alerta encendidas <span class="req">*</span></label>
+            <div class="field-hint" style="margin-bottom:6px;">Toca todas las que apliquen, o "Ninguna".</div>
+            <div class="chip-group tone-bad" id="chip_luces">
+              <div class="chip" data-val="Aceite">Aceite</div>
+              <div class="chip" data-val="Frenos">Frenos</div>
+              <div class="chip" data-val="Peligro">Peligro / Check Engine</div>
+              <div class="chip chip-none" data-val="Ninguna">Ninguna encendida</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 3: INTERNA -->
+        <div class="section-card" data-zone="interna">
+          <div class="sec-kicker">Por dentro · 3. Interna</div>
+          <h3>Interior / cabina</h3>
+          <div class="sec-sub">Asientos, piso y cabina en general.</div>
+
+          <div class="field">
+            <label>Limpieza del vehículo <span class="req">*</span></label>
+            <div class="opt-group" id="og_limpieza">
+              <div class="opt" data-val="Limpio" data-tone="good">Limpio</div>
+              <div class="opt" data-val="Necesita limpieza" data-tone="bad">Necesita limpieza</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>¿Hay basura dentro? <span class="req">*</span></label>
+            <div class="opt-group" id="og_basura">
+              <div class="opt" data-val="No" data-tone="good">No, nada de basura</div>
+              <div class="opt" data-val="Sí" data-tone="bad">Sí hay basura</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 4: MALETERO -->
+        <div class="section-card" data-zone="maletero">
+          <div class="sec-kicker">Por dentro · 4. Maletero</div>
+          <h3>Maletero</h3>
+          <div class="sec-sub">Canastas de insumos y herramientas de trabajo.</div>
+
+          <div class="field">
+            <label>Canasta de cocina llena <span class="req">*</span></label>
+            <div class="opt-group" id="og_cocina">
+              <div class="opt" data-val="Sí" data-tone="good">Sí</div>
+              <div class="opt" data-val="No" data-tone="bad">No</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Canasta de baño llena <span class="req">*</span></label>
+            <div class="opt-group" id="og_bano">
+              <div class="opt" data-val="Sí" data-tone="good">Sí</div>
+              <div class="opt" data-val="No" data-tone="bad">No</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Herramientas en el maletero</label>
+            <div class="field-hint" style="margin-bottom:6px;">Toca cada una que confirmas que SÍ está. Las que no toques quedan marcadas como faltantes.</div>
+            <div class="chip-group tone-good" id="chip_herramientas">
+              <div class="chip" data-val="Vacuum">Vacuum</div>
+              <div class="chip" data-val="Cepillos eléctricos">Cepillos eléctricos</div>
+              <div class="chip" data-val="Trapos">Trapos</div>
+              <div class="chip" data-val="Cubetas">Cubetas</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>¿Falta algo más? (opcional)</label>
+            <input type="text" id="f_herr_falta_extra" placeholder="Cualquier otra cosa que falte...">
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="field">
+            <label>Notas generales (opcional)</label>
+            <textarea id="f_notas" placeholder="Cualquier otra observación del día..."></textarea>
+          </div>
+          <button class="btn" onclick="submitChecklist()">Enviar checklist</button>
+          <div id="submitMsg" style="margin-top:10px;font-size:12.5px;"></div>
+        </div>
+
+        <div class="panel" id="misRegistrosPanel">
+          <h2>Mis últimos registros en este dispositivo</h2>
+          <div class="sub">Solo como referencia local — lo que ve María está en la pestaña Panel.</div>
+          <div id="misRegistros"></div>
+        </div>
+
+      </div>
+
+      <div class="car-aside">
+        <div class="car-card">
+          <svg viewBox="0 0 440 170" xmlns="http://www.w3.org/2000/svg">
+            <circle class="wheel" cx="100" cy="145" r="24"/>
+            <circle class="wheel" cx="340" cy="145" r="24"/>
+            <path class="car-body-fill" d="M25,135 L25,105 Q25,85 50,80 L95,55 Q125,35 175,35 L265,35 Q305,35 330,60 L390,85 Q415,90 415,110 L415,135 Z"/>
+            <path class="car-window" d="M100,78 L130,55 Q150,45 180,45 L260,45 Q288,45 308,63 L328,78 Z"/>
+            <rect class="car-zone" id="zone-exterior" x="15" y="55" width="115" height="90" rx="14"/>
+            <rect class="car-zone" id="zone-tablero" x="120" y="45" width="65" height="70" rx="10"/>
+            <rect class="car-zone" id="zone-interna" x="185" y="40" width="120" height="80" rx="10"/>
+            <rect class="car-zone" id="zone-maletero" x="305" y="55" width="105" height="90" rx="14"/>
+          </svg>
+          <div class="zone-text">
+            <div class="zone-label" id="zoneLabel">Sección: Por fuera</div>
+            <div class="zone-hint">Se ilumina la zona del carro que estás revisando</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== VISTA PANEL / HISTORIAL ===================== -->
+  <div class="view" id="viewPanel">
+    <div class="kpis" id="kpis"></div>
+
+    <div class="panel">
+      <div class="toolbar">
+        <select id="filtEmpleada"><option value="">Todas las empleadas</option></select>
+        <select id="filtPeriodo">
+          <option value="30">Últimos 30 días</option>
+          <option value="7">Últimos 7 días</option>
+          <option value="90">Últimos 90 días</option>
+          <option value="0">Todo el historial</option>
+        </select>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);">
+          <input type="checkbox" id="filtSoloAlertas" style="width:auto;"> Solo con alertas
+        </label>
+        <button class="btn secondary" onclick="refreshHistorial()">🔄 Actualizar</button>
+        <button class="btn secondary" onclick="exportXLSX()">Exportar XLSX</button>
+      </div>
+      <div class="table-scroll" id="tableWrap"></div>
+    </div>
+  </div>
+
+  <div class="foot-note">
+    Este artefacto guarda un respaldo local en cada dispositivo y sincroniza con una hoja de Google Sheets compartida (vía Google Apps Script) para que el registro sea visible desde cualquier dispositivo conectado. Si no hay conexión configurada o falla la red, los registros quedan en cola y se envían automáticamente al reconectar.
+  </div>
+</div>
+
+<div class="modal-bg" id="detailModal">
+  <div class="modal">
+    <h2>Detalle del checklist</h2>
+    <div id="detailBody"></div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeDetail()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const LS_QUEUE = "amigas_checklist_queue_v1";
+const LS_CACHE = "amigas_checklist_cache_v1";
+const LS_EMP = "amigas_checklist_empleadas_v1";
+const LS_ENDPOINT = "amigas_checklist_endpoint_v1";
+const TOOLS_LIST = ["Vacuum","Cepillos eléctricos","Trapos","Cubetas"];
+const ZONE_LABELS = {exterior:"Por fuera", tablero:"Por dentro · Tablero", interna:"Por dentro · Interna", maletero:"Por dentro · Maletero"};
+
+let remoteRows = [];
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function nowTime(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+":"+String(d.getMinutes()).padStart(2,'0'); }
+function escapeHtml(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function init(){
+  document.getElementById('f_fecha').value = todayStr();
+  document.getElementById('f_hora').value = nowTime();
+  document.getElementById('cfgEndpoint').value = getEndpoint();
+  buildEmpDatalist();
+  wireOptGroup('og_llantas', v => toggleField('fld_llantas_nota', v==='Revisar'));
+  wireOptGroup('og_golpes', v => toggleField('fld_golpes_nota', v==='Sí'));
+  wireOptGroup('og_capo');
+  wireOptGroup('og_gasolina');
+  wireOptGroup('og_limpieza');
+  wireOptGroup('og_basura');
+  wireOptGroup('og_cocina');
+  wireOptGroup('og_bano');
+  wireChipGroup('chip_luces', {none:'Ninguna'});
+  wireChipGroup('chip_herramientas', {});
+  renderMisRegistros();
+  renderConnBanner();
+  setupZoneObserver();
+  if(getEndpoint()) refreshHistorial();
+  else renderTableFromCache();
+}
+function toggleField(id, show){ document.getElementById(id).style.display = show ? 'block':'none'; }
+
+/* ---------- generic selection widgets ---------- */
+function wireOptGroup(id, cb){
+  document.querySelectorAll('#'+id+' .opt').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      document.querySelectorAll('#'+id+' .opt').forEach(o=>o.classList.remove('sel'));
+      el.classList.add('sel');
+      if(cb) cb(el.dataset.val);
+    });
+  });
+}
+function getOptSelected(id){
+  const el = document.querySelector('#'+id+' .opt.sel');
+  return el ? el.dataset.val : '';
+}
+function wireChipGroup(id, opts){
+  opts = opts || {};
+  const root = document.getElementById(id);
+  root.querySelectorAll('.chip').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      if(opts.none && el.dataset.val===opts.none){
+        root.querySelectorAll('.chip').forEach(o=>o.classList.remove('sel'));
+        el.classList.add('sel');
+      } else {
+        el.classList.toggle('sel');
+        if(opts.none){
+          const noneChip = root.querySelector('.chip[data-val="'+opts.none+'"]');
+          if(noneChip) noneChip.classList.remove('sel');
+        }
+      }
+    });
+  });
+}
+function getChipSelected(id){
+  return [...document.querySelectorAll('#'+id+' .chip.sel')].map(c=>c.dataset.val);
+}
+
+/* ---------- car diagram: highlight zone in view ---------- */
+function setupZoneObserver(){
+  const sections = document.querySelectorAll('.section-card[data-zone]');
+  const setActive = (zone)=>{
+    document.querySelectorAll('.car-zone').forEach(z=>z.classList.remove('active'));
+    const z = document.getElementById('zone-'+zone);
+    if(z) z.classList.add('active');
+    document.getElementById('zoneLabel').textContent = 'Sección: ' + (ZONE_LABELS[zone] || zone);
+  };
+  if('IntersectionObserver' in window){
+    const io = new IntersectionObserver((entries)=>{
+      let best = null, bestRatio = 0;
+      entries.forEach(e=>{ if(e.isIntersecting && e.intersectionRatio > bestRatio){ bestRatio = e.intersectionRatio; best = e.target; } });
+      if(best) setActive(best.dataset.zone);
+    }, {threshold:[0.2,0.4,0.6,0.8], rootMargin:'-10% 0px -40% 0px'});
+    sections.forEach(s=>io.observe(s));
+  }
+  sections.forEach(s=>{
+    s.addEventListener('click', ()=> setActive(s.dataset.zone));
+    s.addEventListener('focusin', ()=> setActive(s.dataset.zone));
+  });
+  setActive('exterior');
+}
+
+function buildEmpDatalist(){
+  let list = JSON.parse(localStorage.getItem(LS_EMP) || '["Soami Perdomo"]');
+  const dl = document.getElementById('empList');
+  dl.innerHTML = list.map(n=>`<option value="${escapeHtml(n)}">`).join('');
+}
+function rememberEmp(name){
+  let list = JSON.parse(localStorage.getItem(LS_EMP) || '["Soami Perdomo"]');
+  if(name && !list.includes(name)){ list.push(name); localStorage.setItem(LS_EMP, JSON.stringify(list)); buildEmpDatalist(); }
+}
+
+function getEndpoint(){ return localStorage.getItem(LS_ENDPOINT) || ""; }
+function saveEndpoint(){
+  const v = document.getElementById('cfgEndpoint').value.trim();
+  localStorage.setItem(LS_ENDPOINT, v);
+  const st = document.getElementById('cfgStatus');
+  if(!v){ st.textContent=''; renderConnBanner(); return; }
+  st.textContent = 'Probando...'; st.style.color = 'var(--muted)';
+  fetch(v, {method:'GET'}).then(r=>r.json()).then(d=>{
+    if(d && d.ok){ st.textContent='✔ Conectado correctamente'; st.style.color='var(--green)'; }
+    else { st.textContent='⚠ Respondió pero con error'; st.style.color='var(--amber)'; }
+    renderConnBanner();
+    refreshHistorial();
+  }).catch(()=>{ st.textContent='✖ No se pudo conectar (revisa la URL)'; st.style.color='var(--red)'; renderConnBanner(); });
+}
+
+function renderConnBanner(){
+  const ep = getEndpoint();
+  const queue = JSON.parse(localStorage.getItem(LS_QUEUE) || '[]');
+  const box = document.getElementById('connBanner');
+  if(!ep){
+    box.innerHTML = `<div class="banner warn"><span>⚠ Este dispositivo aún no está conectado al backend compartido — abre "Configuración de sincronización" arriba y pega la URL.</span></div>`;
+    return;
+  }
+  if(queue.length>0){
+    box.innerHTML = `<div class="banner warn"><span>⏳ ${queue.length} registro(s) pendiente(s) de sincronizar (sin conexión al enviarlos).</span><button onclick="flushQueue()">Reintentar ahora</button></div>`;
+    return;
+  }
+  box.innerHTML = `<div class="banner ok"><span><span class="status-dot on"></span>Conectado — los registros se sincronizan automáticamente.</span></div>`;
+}
+
+function showTab(t){
+  document.getElementById('viewForm').classList.toggle('active', t==='form');
+  document.getElementById('viewPanel').classList.toggle('active', t==='panel');
+  document.getElementById('tabBtnForm').classList.toggle('active', t==='form');
+  document.getElementById('tabBtnPanel').classList.toggle('active', t==='panel');
+  if(t==='panel') refreshHistorial();
+}
+
+function submitChecklist(){
+  const empleada = document.getElementById('f_empleada').value.trim();
+  const ext_llantas = getOptSelected('og_llantas');
+  const ext_golpes = getOptSelected('og_golpes');
+  const ext_capo = getOptSelected('og_capo');
+  const gasolina = getOptSelected('og_gasolina');
+  const luces = getChipSelected('chip_luces');
+  const interior_limpieza = getOptSelected('og_limpieza');
+  const interior_basura = getOptSelected('og_basura');
+  const maletero_cocina = getOptSelected('og_cocina');
+  const maletero_bano = getOptSelected('og_bano');
+  const maletero_herramientas = getChipSelected('chip_herramientas');
+
+  const msg = document.getElementById('submitMsg');
+  const faltantes = [];
+  if(!empleada) faltantes.push('nombre de empleada');
+  if(!ext_llantas) faltantes.push('llantas');
+  if(!ext_golpes) faltantes.push('golpes/daños');
+  if(!ext_capo) faltantes.push('capó');
+  if(!gasolina) faltantes.push('gasolina');
+  if(luces.length===0) faltantes.push('luces de alerta');
+  if(!interior_limpieza) faltantes.push('limpieza');
+  if(!interior_basura) faltantes.push('basura');
+  if(!maletero_cocina) faltantes.push('canasta de cocina');
+  if(!maletero_bano) faltantes.push('canasta de baño');
+  if(faltantes.length>0){
+    msg.style.color = 'var(--red)';
+    msg.textContent = 'Falta completar: ' + faltantes.join(', ') + '.';
+    return;
+  }
+
+  const record = {
+    id: 'chk_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    fecha: document.getElementById('f_fecha').value,
+    hora_salida: document.getElementById('f_hora').value,
+    empleada,
+    ext_llantas,
+    ext_llantas_nota: document.getElementById('f_llantas_nota').value.trim(),
+    ext_golpes,
+    ext_golpes_nota: document.getElementById('f_golpes_nota').value.trim(),
+    ext_capo,
+    gasolina,
+    kilometraje: document.getElementById('f_km').value || '',
+    luces_alerta: luces.join(', '),
+    interior_limpieza,
+    interior_basura,
+    maletero_cocina,
+    maletero_bano,
+    maletero_herramientas: maletero_herramientas.join(', '),
+    maletero_herramientas_falta: document.getElementById('f_herr_falta_extra').value.trim(),
+    notas: document.getElementById('f_notas').value.trim(),
+    ts: new Date().toISOString()
+  };
+  rememberEmp(empleada);
+  saveLocalCopy(record);
+  sendRecord(record);
+  msg.style.color = 'var(--green)';
+  msg.textContent = '✔ Checklist registrado. ¡Buen día de trabajo!';
+  resetForm();
+  renderMisRegistros();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function resetForm(){
+  document.querySelectorAll('.opt.sel').forEach(o=>o.classList.remove('sel'));
+  document.querySelectorAll('.chip.sel').forEach(o=>o.classList.remove('sel'));
+  toggleField('fld_llantas_nota', false);
+  toggleField('fld_golpes_nota', false);
+  document.getElementById('f_llantas_nota').value='';
+  document.getElementById('f_golpes_nota').value='';
+  document.getElementById('f_herr_falta_extra').value='';
+  document.getElementById('f_notas').value='';
+  document.getElementById('f_km').value='';
+  document.getElementById('f_fecha').value = todayStr();
+  document.getElementById('f_hora').value = nowTime();
+}
+
+function saveLocalCopy(record){
+  let mine = JSON.parse(localStorage.getItem('amigas_checklist_mine_v1') || '[]');
+  mine.unshift(record);
+  mine = mine.slice(0,20);
+  localStorage.setItem('amigas_checklist_mine_v1', JSON.stringify(mine));
+}
+function renderMisRegistros(){
+  const mine = JSON.parse(localStorage.getItem('amigas_checklist_mine_v1') || '[]');
+  const box = document.getElementById('misRegistros');
+  if(mine.length===0){ box.innerHTML = '<div class="empty-state">Aún no has enviado ningún checklist desde este dispositivo.</div>'; return; }
+  box.innerHTML = mine.map(r=>{
+    const alerts = alertSummary(r);
+    return `<div style="font-size:12.5px;padding:8px 0;border-bottom:1px solid var(--line);">
+      <b>${escapeHtml(r.fecha)} ${escapeHtml(r.hora_salida)}</b> — Gasolina: ${escapeHtml(r.gasolina)}
+      ${alerts.length ? '<br>' + alerts.map(a=>`<span class="badge bad">${escapeHtml(a)}</span>`).join('') : '<span class="badge ok" style="margin-left:6px;">Sin alertas</span>'}
+    </div>`;
+  }).join('');
+}
+
+function sendRecord(record){
+  const ep = getEndpoint();
+  if(!ep){ queueRecord(record); return; }
+  fetch(ep, {
+    method: 'POST',
+    headers: {'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(record)
+  }).then(r=>r.json()).then(d=>{
+    if(!d || !d.ok) queueRecord(record);
+    else renderConnBanner();
+  }).catch(()=>{ queueRecord(record); });
+}
+function queueRecord(record){
+  let q = JSON.parse(localStorage.getItem(LS_QUEUE) || '[]');
+  q.push(record);
+  localStorage.setItem(LS_QUEUE, JSON.stringify(q));
+  renderConnBanner();
+}
+function flushQueue(){
+  const ep = getEndpoint();
+  if(!ep) return;
+  let q = JSON.parse(localStorage.getItem(LS_QUEUE) || '[]');
+  if(q.length===0) return;
+  const pending = [...q];
+  localStorage.setItem(LS_QUEUE, '[]');
+  let failed = [];
+  let remaining = pending.length;
+  pending.forEach(record=>{
+    fetch(ep, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(record)})
+      .then(r=>r.json()).then(d=>{ if(!d || !d.ok) failed.push(record); })
+      .catch(()=>{ failed.push(record); })
+      .finally(()=>{
+        remaining--;
+        if(remaining===0){
+          localStorage.setItem(LS_QUEUE, JSON.stringify(failed));
+          renderConnBanner();
+          refreshHistorial();
+        }
+      });
+  });
+}
+
+function refreshHistorial(){
+  const ep = getEndpoint();
+  if(!ep){ renderTableFromCache(); return; }
+  fetch(ep, {method:'GET'}).then(r=>r.json()).then(d=>{
+    if(d && d.ok){
+      remoteRows = d.rows || [];
+      localStorage.setItem(LS_CACHE, JSON.stringify(remoteRows));
+    }
+    renderPanel();
+  }).catch(()=>{ renderTableFromCache(); });
+}
+function renderTableFromCache(){
+  remoteRows = JSON.parse(localStorage.getItem(LS_CACHE) || '[]');
+  renderPanel();
+}
+
+function missingTools(r){
+  const have = (r.maletero_herramientas||'').split(',').map(s=>s.trim()).filter(Boolean);
+  return TOOLS_LIST.filter(t=>!have.includes(t));
+}
+function alertSummary(r){
+  const mt = missingTools(r);
+  return [
+    r.ext_llantas==='Revisar' && 'Llantas: revisar' + (r.ext_llantas_nota ? ' ('+r.ext_llantas_nota+')' : ''),
+    r.ext_golpes==='Sí' && ('Golpes/daños' + (r.ext_golpes_nota ? ': '+r.ext_golpes_nota : '')),
+    r.ext_capo==='Bajo' && 'Refrigerante bajo',
+    r.ext_capo==='No revisado' && 'Capó no revisado',
+    (r.gasolina==='1/4'||r.gasolina==='Reserva') && ('Gasolina ' + r.gasolina),
+    (r.luces_alerta && r.luces_alerta!=='Ninguna' && r.luces_alerta.trim()!=='') && ('Luces: ' + r.luces_alerta),
+    r.interior_limpieza==='Necesita limpieza' && 'Necesita limpieza interior',
+    r.interior_basura==='Sí' && 'Basura dentro del vehículo',
+    r.maletero_cocina==='No' && 'Canasta de cocina vacía',
+    r.maletero_bano==='No' && 'Canasta de baño vacía',
+    mt.length>0 && ('Faltan herramientas: ' + mt.join(', ')),
+    r.maletero_herramientas_falta && ('Otro faltante: ' + r.maletero_herramientas_falta)
+  ].filter(Boolean);
+}
+function isFlagged(r){ return alertSummary(r).length > 0; }
+
+function filteredRows(){
+  const emp = document.getElementById('filtEmpleada').value;
+  const periodo = parseInt(document.getElementById('filtPeriodo').value,10);
+  const soloAlertas = document.getElementById('filtSoloAlertas').checked;
+  let rows = [...remoteRows];
+  if(emp) rows = rows.filter(r=>r.empleada===emp);
+  if(periodo>0){
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-periodo);
+    rows = rows.filter(r=> r.fecha && new Date(r.fecha) >= cutoff);
+  }
+  if(soloAlertas) rows = rows.filter(isFlagged);
+  rows.sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||'') || (b.hora_salida||'').localeCompare(a.hora_salida||''));
+  return rows;
+}
+
+function renderPanel(){
+  buildFiltroEmpleadas();
+  const rows = filteredRows();
+  renderKPIs(rows);
+  renderTable(rows);
+}
+function buildFiltroEmpleadas(){
+  const sel = document.getElementById('filtEmpleada');
+  const cur = sel.value;
+  const names = [...new Set(remoteRows.map(r=>r.empleada).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Todas las empleadas</option>' + names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  sel.value = cur;
+}
+function renderKPIs(rows){
+  const total = rows.length;
+  const alertas = rows.filter(isFlagged).length;
+  const gasBaja = rows.filter(r=>r.gasolina==='1/4'||r.gasolina==='Reserva').length;
+  const luces = rows.filter(r=>r.luces_alerta && r.luces_alerta!=='Ninguna' && r.luces_alerta.trim()!=='').length;
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="num">${total}</div><div class="lbl">Registros en periodo</div></div>
+    <div class="kpi alert"><div class="num">${alertas}</div><div class="lbl">Con alerta</div></div>
+    <div class="kpi alert"><div class="num">${gasBaja}</div><div class="lbl">Gasolina baja/reserva</div></div>
+    <div class="kpi alert"><div class="num">${luces}</div><div class="lbl">Con luces de alerta</div></div>
+  `;
+}
+function renderTable(rows){
+  const box = document.getElementById('tableWrap');
+  if(rows.length===0){ box.innerHTML = '<div class="empty-state">No hay registros para este filtro todavía.</div>'; return; }
+  box.innerHTML = `<table><thead><tr>
+    <th>Fecha</th><th>Hora</th><th>Empleada</th><th>Gasolina</th><th>Alertas</th><th></th>
+  </tr></thead><tbody>
+  ${rows.map((r,i)=>{
+    const alerts = alertSummary(r);
+    return `<tr class="${alerts.length?'flag':''}">
+      <td>${escapeHtml(r.fecha)}</td>
+      <td>${escapeHtml(r.hora_salida)}</td>
+      <td>${escapeHtml(r.empleada)}</td>
+      <td><span class="badge ${(r.gasolina==='1/4'||r.gasolina==='Reserva')?'gas-low':'gas-ok'}">${escapeHtml(r.gasolina)}</span></td>
+      <td>${alerts.length ? alerts.map(a=>`<span class="badge bad">${escapeHtml(a)}</span>`).join('') : '<span class="badge ok">Sin alertas</span>'}</td>
+      <td><button class="btn small secondary" onclick="openDetail(${i})">Ver detalle</button></td>
+    </tr>`;
+  }).join('')}
+  </tbody></table>`;
+  box.dataset.rows = JSON.stringify(rows);
+}
+
+function openDetail(i){
+  const rows = filteredRows();
+  const r = rows[i];
+  if(!r) return;
+  const rowsHtml = (label, val)=> `<div class="row"><b>${label}</b><span>${escapeHtml(val) || '—'}</span></div>`;
+  document.getElementById('detailBody').innerHTML = [
+    rowsHtml('Fecha', r.fecha), rowsHtml('Hora', r.hora_salida), rowsHtml('Empleada', r.empleada),
+    rowsHtml('Llantas', r.ext_llantas), rowsHtml('Nota llantas', r.ext_llantas_nota),
+    rowsHtml('Golpes/daños', r.ext_golpes), rowsHtml('Nota golpes', r.ext_golpes_nota),
+    rowsHtml('Capó (agua/refrigerante)', r.ext_capo),
+    rowsHtml('Gasolina', r.gasolina), rowsHtml('Kilometraje', r.kilometraje),
+    rowsHtml('Luces de alerta', r.luces_alerta),
+    rowsHtml('Limpieza interior', r.interior_limpieza), rowsHtml('Basura dentro', r.interior_basura),
+    rowsHtml('Canasta cocina llena', r.maletero_cocina), rowsHtml('Canasta baño llena', r.maletero_bano),
+    rowsHtml('Herramientas confirmadas', r.maletero_herramientas),
+    rowsHtml('Herramientas faltantes', missingTools(r).join(', ')),
+    rowsHtml('Otro faltante', r.maletero_herramientas_falta),
+    rowsHtml('Notas', r.notas)
+  ].join('');
+  document.getElementById('detailModal').classList.add('open');
+}
+function closeDetail(){ document.getElementById('detailModal').classList.remove('open'); }
+
+function exportXLSX(){
+  const rows = filteredRows();
+  if(rows.length===0){ alert('No hay datos para exportar con este filtro.'); return; }
+  const data = rows.map(r=>({
+    Fecha: r.fecha, Hora: r.hora_salida, Empleada: r.empleada,
+    Llantas: r.ext_llantas, 'Nota llantas': r.ext_llantas_nota,
+    'Golpes/daños': r.ext_golpes, 'Nota golpes': r.ext_golpes_nota,
+    'Capó (agua/refrigerante)': r.ext_capo,
+    Gasolina: r.gasolina, Kilometraje: r.kilometraje,
+    'Luces de alerta': r.luces_alerta,
+    'Limpieza interior': r.interior_limpieza, 'Basura dentro': r.interior_basura,
+    'Canasta cocina llena': r.maletero_cocina, 'Canasta baño llena': r.maletero_bano,
+    'Herramientas confirmadas': r.maletero_herramientas,
+    'Herramientas faltantes': missingTools(r).join(', '),
+    'Otro faltante': r.maletero_herramientas_falta,
+    Notas: r.notas,
+    Alertas: alertSummary(r).join(' | ')
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Checklist Vehículo");
+  XLSX.writeFile(wb, `Amigas_Checklist_Vehiculo_${todayStr()}.xlsx`);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
